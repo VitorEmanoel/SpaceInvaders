@@ -1,3 +1,11 @@
 body{
 	background-color: black;
 }
+
+#Game{
+	position: relative;
+	margin: 0 auto;
+	width: 1280px;
+	height: 630px;
+	border: 2px solid white;
+}
