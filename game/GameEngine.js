@@ -1,7 +1,15 @@
+/*
+
+    * SpaceInvaders criado por VitorEmanoel
+    * Github: github.com/VitorEmanoel
+    * Assets por DamirSvrtan 
+    * Github: github.com/DamirSvrtan
+
+*/
 var invaders = new Array(6);
 var ship;
 var projectile;
-var projectileInterval;
+
 function startGame() {
     Game.start();
 }
@@ -22,6 +30,7 @@ var Game = {
     playing : true,
     shipSpeed : 10,
     projectileSpeed : 1,
+    renderInterval : null,
     start : function(){
         this.canvas.width = 810;
         this.canvas.height = 600;
@@ -32,14 +41,43 @@ var Game = {
         
         for(var i = 0; i < 6; i++){
             invaders[i] = new Array(13);
-            for(var j = 0; j < 13; j++){
+            for(var j = 0; j < 6; j++){
                 invaders[i][j] = new Invader(48, 32, "./assets/images/Invader" +Math.floor((Math.random() * 6) + 1) + ".png", i, j);
-                invaders[i][j].move(30 * j - 1 + invaders[i][j].width * j + 10, invaders[i][j].height * i + 5);
+                invaders[i][j].move(100 * j - 1 + invaders[i][j].width * j + 50, invaders[i][j].height * i + 5);
             }
         }
+        this.renderInterval = setInterval(this.render, 33.3333333333);
     },
-    clear : function(){
-        this.context.clearRect(0, 0, 810, 600);
+
+    render : function(){
+        Game.context.clearRect(0, 0, 810, 600);
+        if(projectile != undefined){
+            if(projectile.y == 0){
+                projectile.clear();
+                projectile = undefined;
+            }else{
+                projectile.move(projectile.x, projectile.y - 15);
+                Game.context.drawImage(projectile.image, projectile.x, projectile.y);
+            }
+        }
+
+        for(var i = 0; i < 6; i++){
+            for(var j = 0; j < 6; j++){
+                var invader = invaders[i][j];
+                if(projectile != undefined){
+                    if(projectile.overlaps(invader)){
+                        projectile.clear()
+                        projectile = undefined;
+                        invader.dead = true;
+                    }
+                }
+                if(!invader.dead)
+                    Game.context.drawImage(invader.image, invader.x, invader.y);
+            }
+        }
+
+        Game.context.drawImage(ship.image, ship.x, ship.y);
+
     },
 };
 
@@ -59,14 +97,16 @@ class Entity{
     }
 
     move(x, y){
-        Game.context.clearRect(this.x, this.y, this.x + this.width, this.y + this.height);
         this.y = y;
         this.x = x;
-        Game.context.drawImage(this.image, this.x, this.y);
     }
 
     clear(){
         Game.context.clearRect(this.x, this.y, this.x + this.width, this.y + this.height);
+    }
+
+    overlaps(otherentity){
+        return otherentity.x >= this.x && otherentity.x <= this.x + this.width  && this.y == otherentity.y;
     }
 }
 
@@ -76,6 +116,7 @@ class Invader extends Entity{
         super(height, width, src);
         this.row = row;
         this.column = column;
+        this.dead = false;
     }
 }
 
@@ -100,11 +141,9 @@ class Ship extends Entity{
 
     shoot(){
         if(projectile == undefined){
-            projectile = new Projectile(6, 17, "./assets/images/Bullet.png", this.x, this.y);
-            projectileInterval = setInterval(projectile.shootMove(projectile), 30);
+            projectile = new Projectile(6, 17, "./assets/images/Bullet.png", this.x + this.width/2 + 11, this.y);
         }
     }
-
 }
 
 class Projectile extends Entity{
@@ -114,37 +153,4 @@ class Projectile extends Entity{
         this.x = x;
         this.y = y;
     }
-
-    overlaps(){
-        for(var i = 0; i < 6; i++){
-            for(var j = 0; j < 13; j++){
-                var invader = invaders[i][j];
-                if((invader.x >= this.x || invader.x <= this.x + this.width) && this.y == invader.y && invader != undefined){
-                    return invader;
-                }
-            }
-        }
-        return undefined;
-    }
-
-    shootMove(self){
-        var total = this.y - Game.projectileSpeed;
-        if(total == 0){
-            clearInterval(projectileInterval);
-            projectile.clear();
-            projectile = undefined;
-            return;
-        }
-        var overlap = self.overlaps();
-        if(overlap != undefined){
-            clearInterval(Game.projectileInterval);
-            projectile.clear();
-            projectile = undefined;
-            invaders[overlap.column][overlap.row] = undefined;
-            return;
-        }
-        super.move(this.x, total);
-
-    }
-
 }
