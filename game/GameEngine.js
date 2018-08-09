@@ -2,7 +2,7 @@
 
     * SpaceInvaders criado por VitorEmanoel
     * Github: github.com/VitorEmanoel
-    * Assets por DamirSvrtan 
+    * Assets por DamirSvrtan
     * Github: github.com/DamirSvrtan
 
 */
@@ -30,7 +30,9 @@ var Game = {
     playing : true,
     shipSpeed : 10,
     projectileSpeed : 1,
-    renderInterval : null,
+    invadersXMoveSpeed : 1,
+    invadersYMoveSpeed : 32,
+    next : false,
     start : function(){
         this.canvas.width = 810;
         this.canvas.height = 600;
@@ -38,21 +40,27 @@ var Game = {
         document.body.insertBefore(this.canvas, document.body.childNodes[0]);
         ship = new Ship(60, 32, "./assets/images/Ship.png");
         ship.move(this.canvas.width/2 -  ship.width/2, this.canvas.height - ship.height);
-        
+        this.projectileAudio = new Audio("./assets/sounds/ShipBullet.wav");
+        this.InvaderDeadAudio = new Audio("./assets/sounds/InvaderHit.wav");
+
         for(var i = 0; i < 6; i++){
             invaders[i] = new Array(13);
             for(var j = 0; j < 6; j++){
                 invaders[i][j] = new Invader(48, 32, "./assets/images/Invader" +Math.floor((Math.random() * 6) + 1) + ".png", i, j);
-                invaders[i][j].move(100 * j - 1 + invaders[i][j].width * j + 50, invaders[i][j].height * i + 5);
+                invaders[i][j].move(80 * j - 1 + invaders[i][j].width * j + 60, 10 * i - 1 + invaders[i][j].height * i + 5);
             }
         }
         this.renderInterval = setInterval(this.render, 33.3333333333);
     },
 
     render : function(){
+        if(!Game.playing){
+            return;
+        }
         Game.context.clearRect(0, 0, 810, 600);
         if(projectile != undefined){
-            if(projectile.y == 0){
+            if(projectile.y <= 0){
+                console.log("Chegou no alto");
                 projectile.clear();
                 projectile = undefined;
             }else{
@@ -60,30 +68,70 @@ var Game = {
                 Game.context.drawImage(projectile.image, projectile.x, projectile.y);
             }
         }
-
+        var lastInvader = Game.getLastInvader();
+        var firstInvader = Game.getFirstInvader();
+        if(lastInvader.x + lastInvader.width >= 810){
+            Game.invadersXMoveSpeed *= -1;
+        }else if(firstInvader.x <= 0){
+            Game.invadersXMoveSpeed *= -1;
+            Game.next = true;
+        }
         for(var i = 0; i < 6; i++){
             for(var j = 0; j < 6; j++){
                 var invader = invaders[i][j];
                 if(projectile != undefined){
-                    if(projectile.overlaps(invader)){
+                    if(invader.overlaps(projectile) && !invader.dead){
                         projectile.clear()
                         projectile = undefined;
                         invader.dead = true;
+                        Game.invadersXMoveSpeed += 1;
+                        Game.InvaderDeadAudio.play();
                     }
                 }
-                if(!invader.dead)
+                if(!invader.dead){
+                    var moveX = invader.x + Game.invadersXMoveSpeed;
+                    var moveY = invader.y;
+                    if(Game.next){
+                        moveY += Game.invadersYMoveSpeed;
+                    }
+                    invader.move(moveX, moveY);
                     Game.context.drawImage(invader.image, invader.x, invader.y);
+                }
             }
         }
-
+        Game.next = false;
         Game.context.drawImage(ship.image, ship.x, ship.y);
-
+        lastInvader = Game.getLastInvader();
+        if(lastInvader.y + lastInvader.height >= ship.y){
+            Game.playing = false;
+        }
     },
+    getFirstInvader : function(){
+        for(var i = 0; i < 6; i++){
+            for(var j = 0; j < 6; j++){
+                var invader = invaders[i][j];
+                if(!invader.dead){
+                    return invader;
+                }
+            }
+        }
+    },
+    getLastInvader : function(){
+        for(var i = 5; i >= 0; i--){
+            for(var j = 5; j >= 0; j--){
+                var invader = invaders[i][j];
+                if(!invader.dead){
+                    return invader;
+                }
+
+            }
+        }
+    }
 };
 
 class Entity{
 
-    constructor(height, width, src){
+    constructor(width, height, src){
         const self = this;
         this.height = height;
         this.width = width;
@@ -105,17 +153,16 @@ class Entity{
         Game.context.clearRect(this.x, this.y, this.x + this.width, this.y + this.height);
     }
 
-    overlaps(otherentity){
-        return otherentity.x >= this.x && otherentity.x <= this.x + this.width  && this.y == otherentity.y;
+    overlaps(outher){
+        return (this.x < outher.x + outher.width && this.x + this.width > outher.x && this.y < outher.y + outher.height && this.height + this.y > outher.y);
     }
 }
 
 class Invader extends Entity{
 
-    constructor(height, width, src, column, row){
+    constructor(height, width, src, row, column){
         super(height, width, src);
         this.row = row;
-        this.column = column;
         this.dead = false;
     }
 }
@@ -141,7 +188,9 @@ class Ship extends Entity{
 
     shoot(){
         if(projectile == undefined){
-            projectile = new Projectile(6, 17, "./assets/images/Bullet.png", this.x + this.width/2 + 11, this.y);
+            console.log("saiu");
+            projectile = new Projectile(6, 17, "./assets/images/Bullet.png", this.x + this.width/2 - 3, this.y);
+            Game.projectileAudio.play();
         }
     }
 }
