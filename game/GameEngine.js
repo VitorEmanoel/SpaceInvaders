@@ -68,7 +68,7 @@ var Game = {
                 Game.context.drawImage(projectile.image, projectile.x, projectile.y);
             }
         }
-        var lastInvader = Game.getLastInvader();
+        var lastInvader = Game.getLastRightInvader();
         var firstInvader = Game.getFirstInvader();
         if(lastInvader.x + lastInvader.width >= 810){
             Game.invadersXMoveSpeed *= -1;
@@ -84,7 +84,11 @@ var Game = {
                         projectile.clear()
                         projectile = undefined;
                         invader.dead = true;
-                        Game.invadersXMoveSpeed += 1;
+                        if(Game.invadersXMoveSpeed < 0){
+                            Game.invadersXMoveSpeed += -0.2;
+                        }else{
+                            Game.invadersXMoveSpeed += 0.2;
+                        }
                         Game.InvaderDeadAudio.play();
                     }
                 }
@@ -101,7 +105,7 @@ var Game = {
         }
         Game.next = false;
         Game.context.drawImage(ship.image, ship.x, ship.y);
-        lastInvader = Game.getLastInvader();
+        lastInvader = Game.getLastButtomInvader();
         if(lastInvader.y + lastInvader.height >= ship.y){
             Game.playing = false;
         }
@@ -109,24 +113,34 @@ var Game = {
     getFirstInvader : function(){
         for(var i = 0; i < 6; i++){
             for(var j = 0; j < 6; j++){
-                var invader = invaders[i][j];
+                var invader = invaders[j][i];
                 if(!invader.dead){
                     return invader;
                 }
             }
         }
     },
-    getLastInvader : function(){
+    getLastRightInvader : function(){
+        for(var i = 5; i >= 0; i--){
+            for(var j = 0; j < 6; j++){
+                var invader = invaders[j][i];
+                if(!invader.dead){
+                    return invader;
+                }
+            }
+        }
+    },
+    getLastButtomInvader : function(){
         for(var i = 5; i >= 0; i--){
             for(var j = 5; j >= 0; j--){
                 var invader = invaders[i][j];
                 if(!invader.dead){
                     return invader;
                 }
-
             }
         }
     }
+
 };
 
 class Entity{
@@ -190,7 +204,7 @@ class Ship extends Entity{
         if(projectile == undefined){
             console.log("saiu");
             projectile = new Projectile(6, 17, "./assets/images/Bullet.png", this.x + this.width/2 - 3, this.y);
-            Game.projectileAudio.play();
+            //Game.projectileAudio.play();
         }
     }
 }
